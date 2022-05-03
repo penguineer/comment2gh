@@ -14,6 +14,8 @@ servers:
 tags:
   - name: mgmt
     description: Common management functions
+  - name: comment
+    description: Comment functions
 
 paths:
   /health:
@@ -49,6 +51,42 @@ paths:
                 type: string
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /comment:
+    post:
+      summary: Post a comment for processing
+      tags:
+        - comment
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              description: Schema fields if not configured differently for the service instance
+              type: object
+              properties:
+                cmt_slug:
+                  type: string
+                  description: The posts slug
+                cmt_name:
+                  type: string
+                  description: The commenter's name
+                cmt_email:
+                  type: string
+                  description: The commenter's e-mail address
+                cmt_url:
+                  type: string
+                  description: A website URL provided by the commenter
+                cmt_message:
+                  type: string
+                  description: The actual comment message
+      responses:
+        '200':
+          description: Processing was successful
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 
 components:
   schemas:
