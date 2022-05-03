@@ -42,7 +42,7 @@ docker run --rm \
 
 Configuration is done using environment variables:
 
-* `MANAGEMENT_PORT`: Port for the HTTP Management Service (default: 8080)
+* `SERVICE_PORT`: Port for the HTTP Service (default: 8080)
 
 
 ## API

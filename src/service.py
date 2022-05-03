@@ -185,7 +185,7 @@ class Oas3Handler(tornado.web.RequestHandler, metaclass=ABCMeta):
         self.finish()
 
 
-class ServiceMgmtEndpoint(object):
+class ServiceEndpoint(object):
     """Open a Tornado HTTP server for the service management API"""
 
     def __init__(self, listen_port: Optional[int] = 8080):
@@ -195,10 +195,10 @@ class ServiceMgmtEndpoint(object):
         self._listen_port = listen_port
         self._server = None
 
-    def setup(self) -> None:
-        """Setup the server (does not start ioloop)"""
+    def setup(self, app: tornado.web.Application) -> None:
+        """Set up the server (does not start ioloop)"""
         sockets = tornado.netutil.bind_sockets(self._listen_port, '')
-        server = tornado.httpserver.HTTPServer(ServiceMgmtEndpoint._make_app())
+        server = tornado.httpserver.HTTPServer(app)
         server.add_sockets(sockets)
 
         port = None
@@ -212,11 +212,3 @@ class ServiceMgmtEndpoint(object):
         """Stop the server, if available"""
         if self._server:
             self._server.stop()
-
-    @staticmethod
-    def _make_app() -> tornado.web.Application:
-        version_path = r"/v[0-9]"
-        return tornado.web.Application([
-            (version_path + r"/health", HealthHandler),
-            (version_path + r"/oas3", Oas3Handler),
-        ])
