@@ -10,16 +10,24 @@ import service
 
 import logging
 
+import form
+
 LOG_FORMAT = '%(levelname) -10s %(asctime)s %(name) -15s %(lineno) -5d: %(message)s'
 LOGGER = logging.getLogger(__name__)
 
 
-def make_app() -> tornado.web.Application:
+def make_app(cmt_cfg, comment_cb) -> tornado.web.Application:
     version_path = r"/v[0-9]"
     return tornado.web.Application([
         (version_path + r"/health", service.HealthHandler),
         (version_path + r"/oas3", service.Oas3Handler),
+        (version_path + r"/comment", form.CommentHandler, {"cfg": cmt_cfg, "comment_cb": comment_cb}),
     ])
+
+
+def cmt_test_cb(cmt: form.Comment):
+    LOGGER.info("Received comment %s", cmt)
+    return True
 
 
 def main():
@@ -28,6 +36,7 @@ def main():
 
     # Service Configuration
     service_port = os.getenv('SERVICE_PORT', 8080)
+    cmt_cfg = form.FormConfiguration.from_environment()
 
     # Setup ioloop
     service.platform_setup()
@@ -37,7 +46,7 @@ def main():
     # Setup Service Management endpoint
     mgmt_ep = service.ServiceEndpoint(listen_port=service_port)
     guard.add_termination_handler(mgmt_ep.stop)
-    app = make_app()
+    app = make_app(cmt_cfg, cmt_test_cb)
     mgmt_ep.setup(app)
 
     # Health Provider map uses weak references, so make sure to store this instance in a variable
