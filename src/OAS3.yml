@@ -1,0 +1,136 @@
+openapi: 3.0.0
+info:
+  title: Comment 2 GitHub Service Interface
+  version: 0.1.0
+  description:
+    Service Interface to check the status of the Comment2Github service
+  contact:
+    name: comment2gh on GitHub
+    url: https://github.com/penguineer/comment2gh
+
+
+servers:
+  - url: http://localhost:8080/v0
+tags:
+  - name: mgmt
+    description: Common management functions
+
+paths:
+  /health:
+    get:
+      summary: Provides health information about the service
+      tags:
+        - mgmt
+      operationId: health
+      responses:
+        '200':
+          description: endpoint is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/health'
+        '500':
+          description: endpoint is NOT healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/health'
+  /oas3:
+    get:
+      summary: get this endpoint's Open API 3 specification
+      tags:
+        - mgmt
+      responses:
+        '200':
+          description: returns the API spec
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    health:
+      type: object
+      properties:
+        git-version:
+          type: string
+        api-version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: string
+          example: ISO8601 conforming timespan
+        amqp:
+          type: object
+          properties:
+            host:
+              type: string
+              description: Configured AMQP host
+            connection:
+              type: string
+              enum:  [established, not established]
+              description: Connection state
+            channel:
+              type: string
+              enum:  [established, not established]
+              description: Channel state
+            terminating:
+              type: boolean
+              description: True if terminating, in this case the object is healthy without connection or channel
+            consumer tag:
+              type: string
+              description: The AMQP consumer tag that was chosen for this channel (optional)
+            healthy:
+              type: boolean
+              description: true when AMQP status is considered healthy
+        evdev:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Name of the PingBoard evdev device
+            path:
+              type: string
+              description: EvDev device path
+            phys:
+              type: string
+              description: USB device path
+            healthy:
+              type: boolean
+              description: true when evdev status is considered healthy
+        serial:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Name of the PingBoard serial device
+            path:
+              type: string
+              description: Serial device path
+            healthy:
+              type: boolean
+              description: true when serial status is considered healthy
+  responses:
+    AuthenticationRequired:
+      description: Authentication is required (401)
+    NotAllowed:
+      description: The call is not allowed with the provided authentication (403)
+    InvalidInput:
+      description: One or more parameters are missing or invalid (400)
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: error message
+    InternalError:
+      description: Internal error during execution (500)
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: error message
