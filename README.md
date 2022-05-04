@@ -2,8 +2,13 @@
 
 > Convert blog comments to GitHub PRs
 
-A small docker container that takes comments from a blog, offers a check
-with reCaptcha and posts them as PR on a GitHub project.
+A small service running in a docker container that
+* receives blog comments from a HTTP form
+* (planned and optional) Checks them via reCaptcha
+* converts them into a format suitable for Jekyll
+* posts them as Pull Request on GitHub
+
+This service is the bridge between visitor participation and static hosting.
 
 
 ## Background
