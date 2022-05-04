@@ -42,8 +42,13 @@ docker run --rm \
 
 Configuration is done using environment variables:
 
-* `MANAGEMENT_PORT`: Port for the HTTP Management Service (default: 8080)
-
+* `SERVICE_PORT`: Port for the HTTP Service (default: 8080)
+* `CORS_ORIGIN`: Allowed origins for the request (default: `*`)
+* `FORM_SLUG`: Field name for the blog entry's slug  (default: `cmt_slug`)
+* `FORM_NAME`: Field name for the commenter's name (default: `cmt_name`)
+* `FORM_EMAIL`: Field name for the commenter's e-mail address (default: `cmt_email`)
+* `FORM_URL`: Field name for the commenter's chosen URL (default: `cmt_url`)
+* `FORM_MESSAGE`: Field name for the comment message (default: `cmt_message`)
 
 ## API
 
