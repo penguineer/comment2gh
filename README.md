@@ -6,6 +6,20 @@ A small docker container that takes comments from a blog, offers a check
 with reCaptcha and posts them as PR on a GitHub project.
 
 
+## Background
+
+The project idea is following a [blog article by Damien Guard](https://damieng.com/blog/2018/05/28/wordpress-to-jekyll-comments/): GitHub's static hosting can still be used in conjunction with dynamic content such as blog comments.
+
+Initially this service was intended to trigger a GitHub workflow. However, there are practical reasons for calling the API directly:
+* There is not much difference between calling the API endpoint for a workflow and calling the API endpoints to do the workflow's work directly.
+* The GitHub token is needed in any case.
+* We are saving on workflow minutes.
+* As the data format is fixed, there is also less need for individual configuration of these workflows. If necessary, there can always be a follow-up workflow on PR creation.
+
+However, in the end this is a transformation between an incoming HTTP POST and a series of outgoing HTTP POST calls.
+It should be not too hard to convert this into a Lambda Function or a similar on-demand structure.
+
+
 ## Usage
 
 ### Run with Docker
