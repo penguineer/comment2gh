@@ -130,7 +130,7 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
         super().__init__(*args, **kwargs)
 
         self._cmt = None
-        self._cmt_return = True
+        self._cmt_return = 1
 
     def comment_cb(self, cmt: form.Comment):
         self._cmt = cmt
@@ -149,7 +149,7 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
             "cmt_url": "5"
         }
         self._cmt = None
-        self._cmt_return = True
+        self._cmt_return = 1
 
         body = urlencode(form)
         response = self.fetch('/v0/comment',
@@ -179,7 +179,7 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
             "cmt_url": "5"
         }
         self._cmt = None
-        self._cmt_return = False
+        self._cmt_return = None
 
         body = urlencode(form)
         response = self.fetch('/v0/comment',
@@ -198,7 +198,7 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
             "cmt_email": "3",
             "cmt_message": "4"
         }
-        self._cmt_return = True
+        self._cmt_return = 1
 
         for key in form.keys():
             reduced = dict(form)
