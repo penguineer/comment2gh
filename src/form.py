@@ -3,7 +3,7 @@
 from abc import ABCMeta
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable, Optional
+from typing import Callable, Optional, Awaitable
 
 import tornado.web
 
@@ -84,7 +84,7 @@ class Comment:
 
 class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
     # noinspection PyAttributeOutsideInit,PyMethodOverriding
-    def initialize(self, cfg: FormConfiguration, comment_cb: Callable[[Comment], bool]) -> None:
+    def initialize(self, cfg: FormConfiguration, comment_cb: Callable[[Comment], Awaitable[int]]) -> None:
         """
 
         :param cfg: Handler configuration
@@ -110,20 +110,20 @@ class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
         self.set_status(204)
         self.finish()
 
-    def post(self):
+    async def post(self):
         self.set_default_headers()  # Because it's not always happening
         self._validate_origin()
 
         try:
             comment = self._cmt_from_body()
             LOGGER.info("Processing comment %s", comment)
-            self._call_cb(comment)
+            await self._call_cb(comment)
         except ValueError as e:
             LOGGER.error("Invalid input from client: %s", str(e))
             raise tornado.web.HTTPError(status_code=400,
                                         reason=str(e))
 
-        self.finish("OK")
+        await self.finish("OK")
 
     def _validate_origin(self):
         if self._cfg.origin == "*":
@@ -136,14 +136,15 @@ class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
         raise tornado.web.HTTPError(status_code=400,
                                     reason="Invalid origin!")
 
-    def _call_cb(self, comment):
+    async def _call_cb(self, comment):
         if not self._cb:
             raise tornado.web.HTTPError(status_code=500,
                                         reason="Comment processing not set up")
 
-        if not self._cb(comment):
+        succ = await self._cb(comment)
+        if not succ:
             raise tornado.web.HTTPError(status_code=500,
-                                        reason="Commend processing failed")
+                                        reason="Comment processing failed")
 
     def _cmt_from_body(self) -> Comment:
         return Comment(
