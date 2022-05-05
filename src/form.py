@@ -11,7 +11,6 @@ import os
 
 import logging
 
-LOG_FORMAT = '%(levelname) -10s %(asctime)s %(name) -15s %(lineno) -5d: %(message)s'
 LOGGER = logging.getLogger(__name__)
 
 
@@ -69,7 +68,7 @@ class Comment:
     date: str = field(init=False, default="")
     slug: str
     name: str
-    email: str
+    email: str = field(repr=False)
     message: str
     url: Optional[str] = None
 
