@@ -69,7 +69,7 @@ class Comment:
     date: str = field(init=False, default="")
     slug: str
     name: str
-    email: str
+    email: str = field(repr=False)
     message: str
     url: Optional[str] = None
 
