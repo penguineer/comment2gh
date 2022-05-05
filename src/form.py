@@ -11,7 +11,6 @@ import os
 
 import logging
 
-LOG_FORMAT = '%(levelname) -10s %(asctime)s %(name) -15s %(lineno) -5d: %(message)s'
 LOGGER = logging.getLogger(__name__)
 
 
