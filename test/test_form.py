@@ -2,10 +2,10 @@
 
 from unittest import mock
 import pytest
+import tornado.testing
 
 import os
 
-import tornado.testing
 from urllib.parse import urlencode
 
 # noinspection PyUnresolvedReferences
@@ -130,9 +130,9 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
         super().__init__(*args, **kwargs)
 
         self._cmt = None
-        self._cmt_return = True
+        self._cmt_return = 1
 
-    def comment_cb(self, cmt: form.Comment):
+    async def comment_cb(self, cmt: form.Comment):
         self._cmt = cmt
         return self._cmt_return
 
@@ -140,6 +140,8 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
         return make_app(cmt_cfg=form.FormConfiguration(),
                         comment_cb=self.comment_cb)
 
+    @tornado.testing.gen_test
+    @pytest.mark.gen_test(run_sync=False)
     def test_form_post_ok(self):
         form = {
             "cmt_slug": "1",
@@ -149,12 +151,13 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
             "cmt_url": "5"
         }
         self._cmt = None
-        self._cmt_return = True
+        self._cmt_return = 1
 
         body = urlencode(form)
-        response = self.fetch('/v0/comment',
-                              method='POST',
-                              body=body)
+        response = yield self.http_client.fetch(self.get_url('/v0/comment'),
+                                                method='POST',
+                                                body=body,
+                                                raise_error=False)
         assert response.code == 200
         assert self._cmt is not None
 
@@ -170,6 +173,8 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
         assert response.headers['Access-Control-Allow-Origin'] == "*"
         assert response.headers['Access-Control-Allow-Methods'] == "POST, OPTIONS"
 
+    @tornado.testing.gen_test
+    @pytest.mark.gen_test(run_sync=False)
     def test_form_processing_failed(self):
         form = {
             "cmt_slug": "1",
@@ -179,18 +184,21 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
             "cmt_url": "5"
         }
         self._cmt = None
-        self._cmt_return = False
+        self._cmt_return = None
 
         body = urlencode(form)
-        response = self.fetch('/v0/comment',
-                              method='POST',
-                              body=body)
+        response = yield self.http_client.fetch(self.get_url('/v0/comment'),
+                                                method='POST',
+                                                body=body,
+                                                raise_error=False)
         assert response.code == 500
         assert self._cmt is not None
 
         assert response.headers['Access-Control-Allow-Origin'] == "*"
         assert response.headers['Access-Control-Allow-Methods'] == "POST, OPTIONS"
 
+    @tornado.testing.gen_test
+    @pytest.mark.gen_test(run_sync=False)
     def test_missing_value(self):
         form = {
             "cmt_slug": "1",
@@ -198,7 +206,7 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
             "cmt_email": "3",
             "cmt_message": "4"
         }
-        self._cmt_return = True
+        self._cmt_return = 1
 
         for key in form.keys():
             reduced = dict(form)
@@ -207,9 +215,10 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
             self._cmt = None
 
             body = urlencode(reduced)
-            response = self.fetch('/v0/comment',
-                                  method='POST',
-                                  body=body)
+            response = yield self.http_client.fetch(self.get_url('/v0/comment'),
+                                                    method='POST',
+                                                    body=body,
+                                                    raise_error=False)
             assert response.code == 400
             assert self._cmt is None
 
