@@ -42,6 +42,12 @@ docker run --rm \
 
 Configuration is done using environment variables:
 
+* `GITHUB_USER`: GitHub user who owns the target repository
+* `GITHUB_TOKEN`: Access token for the repository
+* `GITHUB_REPOSITORY`: The name of the target repository
+* `GITHUB_AUTHOR`: Commit author name (default: `comment2gh Bot`)
+* `GITHUB_EMAIL`: Commit author e-mail
+* `GITHUB_DEFAULT_BRANCH`: Where to start the PR branches (default: `main`)
 * `SERVICE_PORT`: Port for the HTTP Service (default: 8080)
 * `CORS_ORIGIN`: Allowed origins for the request (default: `*`)
 * `FORM_SLUG`: Field name for the blog entry's slug  (default: `cmt_slug`)
@@ -49,6 +55,9 @@ Configuration is done using environment variables:
 * `FORM_EMAIL`: Field name for the commenter's e-mail address (default: `cmt_email`)
 * `FORM_URL`: Field name for the commenter's chosen URL (default: `cmt_url`)
 * `FORM_MESSAGE`: Field name for the comment message (default: `cmt_message`)
+
+Please refer to the  [GitHub documentation on Creating a Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+on how to the `GITHUB_TOKEN`.
 
 ## API
 

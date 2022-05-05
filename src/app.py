@@ -7,6 +7,8 @@ import tornado.web
 import tornado.ioloop
 
 import service
+import github
+import processor
 
 import logging
 
@@ -25,11 +27,6 @@ def make_app(cmt_cfg, comment_cb) -> tornado.web.Application:
     ])
 
 
-def cmt_test_cb(cmt: form.Comment):
-    LOGGER.info("Received comment %s", cmt)
-    return True
-
-
 def main():
     # Setup logging
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
@@ -37,6 +34,10 @@ def main():
     # Service Configuration
     service_port = os.getenv('SERVICE_PORT', 8080)
     cmt_cfg = form.FormConfiguration.from_environment()
+
+    # Comment Processor
+    github_cfg = github.GithubConfiguration.from_environment()
+    comment_processor = processor.CommentProcessor(github_cfg)
 
     # Setup ioloop
     service.platform_setup()
@@ -46,7 +47,7 @@ def main():
     # Setup Service Management endpoint
     mgmt_ep = service.ServiceEndpoint(listen_port=service_port)
     guard.add_termination_handler(mgmt_ep.stop)
-    app = make_app(cmt_cfg, cmt_test_cb)
+    app = make_app(cmt_cfg, comment_processor.comment_to_github_pr)
     mgmt_ep.setup(app)
 
     # Health Provider map uses weak references, so make sure to store this instance in a variable
