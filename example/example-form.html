@@ -61,6 +61,10 @@ form#commentform textarea.missing {
         body: formData
       })
 
+      if (response.status != 201) {
+        throw Error(response.statusText);
+      }
+
       return response
     }
 
@@ -100,22 +104,18 @@ form#commentform textarea.missing {
         button.disabled = true
 
         sendForm("{{ site.comments.receiver }}", new FormData(form))
+          .then(response => response.json())
           .then(response => {
             console.log(response)
-            if (response.status == 200) {
-              status.innerText = "The comment will be moderated. This may wake A Moment™."
-              button.style.visibility = "hidden"
-            } else {
-              status.innerText = "Unfortunately an error occured: " + response.statusText
-              button.innerText = 'Try again …'
-              button.disabled = false
-            }
+            pr = response["pr"]
+            status.innerText = "The comment #" + pr + "will be moderated. This may take A Moment™."
+            button.style.visibility = "hidden"
 
           })
           .catch(error => {
-            status.innerText = "Unfortunately an error occured."
+            status.innerText = "Unfortunately an error occurred: " + error
 
-            button.innerText = 'Try again ...'
+            button.innerText = 'Try again …'
             button.disabled = false
 
             console.log(error)

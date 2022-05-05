@@ -1,10 +1,10 @@
 """ Test the form module """
-
 from unittest import mock
 import pytest
 import tornado.testing
 
 import os
+import json
 
 from urllib.parse import urlencode
 
@@ -158,7 +158,8 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
                                                 method='POST',
                                                 body=body,
                                                 raise_error=False)
-        assert response.code == 200
+        assert response.code == 201
+        assert response.headers["Content-Type"].startswith("application/json")
         assert self._cmt is not None
 
         assert self._cmt.slug == "1"
@@ -172,6 +173,14 @@ class TestCommentHandler(tornado.testing.AsyncHTTPTestCase):
 
         assert response.headers['Access-Control-Allow-Origin'] == "*"
         assert response.headers['Access-Control-Allow-Methods'] == "POST, OPTIONS"
+
+        body = json.loads(response.body.decode("utf-8"))
+        assert "cid" in body
+        assert body["cid"] == self._cmt.cid
+        assert "date" in body
+        assert body["date"] == self._cmt.date
+        assert "pr" in body
+        assert body["pr"] == self._cmt_return
 
     @tornado.testing.gen_test
     @pytest.mark.gen_test(run_sync=False)

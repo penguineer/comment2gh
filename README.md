@@ -71,6 +71,15 @@ If you change field names, please also adapt the service configuration according
 Of course, other ways of designing your form  (purely static, jQuery, …) are available.
 This service just expects to be fed with `application/x-www-form-urlencoded` data, as a browser would normally send.
 
+If successful, the call returns a JSON document like this:
+```json
+{
+  "cid": 682601156,
+  "date": "2022-05-05T15:46:01.696174",
+  "pr": 25
+}
+```
+
 ### Health endpoint
 
 The daemon features a health endpoint to check if all components are up and running.
