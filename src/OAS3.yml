@@ -80,8 +80,22 @@ paths:
                   type: string
                   description: The actual comment message
       responses:
-        '200':
-          description: Processing was successful
+        '201':
+          description: PR has been created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cid:
+                    description: Comment  ID
+                    type: integer
+                  date:
+                    description: Comment Date in ISO format
+                    type: string
+                  pr:
+                    description: Pull Request ID in the GitHub repository
+                    type: integer
         '400':
           $ref: '#/components/responses/InvalidInput'
         '500':
