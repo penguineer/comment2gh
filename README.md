@@ -61,6 +61,16 @@ on how to the `GITHUB_TOKEN`.
 
 ## API
 
+### HTML Form
+
+Please have a look at the [example form](example/example-form.html) on how to embed the service into a static
+website. The `{{ ... }}` sections mark where values need to be entered by your backend or templating engine. 
+Service and form are tested with [Jekyll](https://jekyllrb.com/).
+If you change field names, please also adapt the service configuration accordingly.
+
+Of course, other ways of designing your form  (purely static, jQuery, …) are available.
+This service just expects to be fed with `application/x-www-form-urlencoded` data, as a browser would normally send.
+
 ### Health endpoint
 
 The daemon features a health endpoint to check if all components are up and running.
