@@ -4,7 +4,7 @@
 
 A small service running in a docker container that
 * receives blog comments from a HTTP form
-* (planned and optional) Checks them via reCaptcha
+* checks them via [Google reCAPTCHA v2](https://developers.google.com/recaptcha/docs/display), when enabled (please observe GDPR compliance!)
 * converts them into a format suitable for Jekyll
 * posts them as Pull Request on GitHub
 
@@ -48,6 +48,7 @@ Configuration is done using environment variables:
 * `GITHUB_AUTHOR`: Commit author name (default: `comment2gh Bot`)
 * `GITHUB_EMAIL`: Commit author e-mail
 * `GITHUB_DEFAULT_BRANCH`: Where to start the PR branches (default: `main`)
+* `RECAPTCHA_SECRET`: Secret for Google reCaptcha service (disabled when not provided)
 * `SERVICE_PORT`: Port for the HTTP Service (default: 8080)
 * `CORS_ORIGIN`: Allowed origins for the request (default: `*`)
 * `FORM_SLUG`: Field name for the blog entry's slug  (default: `cmt_slug`)
@@ -79,6 +80,17 @@ If successful, the call returns a JSON document like this:
   "pr": 25
 }
 ```
+
+### Google reCAPTCHA
+
+When the `RECAPTCHA_SECRET` is configured, a verification with [Google reCAPTCHA v2 (Checkbox)](https://developers.google.com/recaptcha/docs/display) will be performed.
+The [reCAPTCHA example form](example/example-form-recaptcha.html) shows a client-side example.
+
+Please be aware that this will send data to Google!
+Only the minimal amount of data is sent, i.e. excluding the IP address, yet this needs to be mentioned in any GDPR declaration.
+
+To disable this feature, just leave the `RECAPTCHA_SECRET` unset or empty. 
+
 
 ### Health endpoint
 
