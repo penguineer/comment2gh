@@ -1,7 +1,7 @@
 """ Module for comment processing """
 
 import form
-from github import GithubConfiguration, GithubReferenceAccess, GithubUpload, GithubPR
+from github import GithubConfiguration, GithubUpload, GithubPR, GithubDefaultRef, GithubCreateBranch
 
 from typing import Optional
 
@@ -88,27 +88,29 @@ class CommentProcessor(object):
         return await self._create_pr(formatter)
 
     async def _create_branch(self, formatter) -> bool:
-        ref = GithubReferenceAccess(self._cfg)
-
-        main_head = await ref.retrieve_default_head()
-        return await ref.create_branch(
+        main_head = await GithubDefaultRef(self._cfg).default_head()
+        return await GithubCreateBranch(
+            self._cfg,
             branch=formatter.branch_name(),
             sha=main_head
-        )
+        ).create_branch()
 
     async def _upload_file(self, formatter) -> bool:
-        return await GithubUpload(self._cfg).upload(
+        return await GithubUpload(
+            self._cfg,
             branch=formatter.branch_name(),
             path=formatter.commit_path(),
             message=formatter.commit_message(),
             committer_name=self._cfg.author,
             committer_email=self._cfg.email,
-            content=formatter.file_content())
+            content=formatter.file_content()
+        ).upload()
 
     async def _create_pr(self, formatter) -> Optional[int]:
-        return await GithubPR(self._cfg).create_pr(
+        return await GithubPR(
+            cfg=self._cfg,
             head=formatter.branch_name(),
             base=self._cfg.branch,
             title=formatter.pr_title(),
             body=formatter.pr_body()
-        )
+        ).create()
