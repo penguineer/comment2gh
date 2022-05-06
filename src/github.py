@@ -104,10 +104,13 @@ class GithubApiFunction(object):
         )
 
     async def _fetch(self):
-        return await AsyncHTTPClient().fetch(
+        result = await AsyncHTTPClient().fetch(
             self._request(),
             raise_error=False
         )
+
+        body = json.loads(result.body.decode("utf-8")) if result.body is not None else None
+        return result.code, body
 
 
 class GithubDefaultRef(GithubApiFunction):
@@ -124,18 +127,21 @@ class GithubDefaultRef(GithubApiFunction):
         )
 
     async def default_head(self) -> Optional[str]:
-        response = await self._fetch()
+        code, body = await self._fetch()
 
-        if response.code != 200:
-            LOGGER.error("Error %i when fetching ref id: %s", response.code, response.body)
+        if code != 200:
+            LOGGER.error("Error %i when fetching ref id: %s", code, str(body))
             return None
 
-        return GithubDefaultRef._sha(response.body)
+        return GithubDefaultRef._sha(body)
 
     @staticmethod
     def _sha(body):
-        result = json.loads(body.decode("utf-8"))
-        return result[0]["object"]["sha"] if len(result) else None
+        try:
+            return body[0]["object"]["sha"] if len(body) else None
+        except KeyError as e:
+            LOGGER.warning("Got weird result from GitHub, error: %s", e)
+            return None
 
 
 class GithubCreateBranch(GithubApiFunction):
@@ -158,12 +164,12 @@ class GithubCreateBranch(GithubApiFunction):
         )
 
     async def create_branch(self) -> bool:
-        response = await self._fetch()
+        code, body = await self._fetch()
 
-        if response.code != 201:
-            LOGGER.error("Error %i when creating ref id: %s", response.code, response.body)
+        if code != 201:
+            LOGGER.error("Error %i when creating ref id: %s", code, str(body))
 
-        return response.code == 201
+        return code == 201
 
 
 class GithubUpload(GithubApiFunction):
@@ -196,12 +202,12 @@ class GithubUpload(GithubApiFunction):
         )
 
     async def upload(self):
-        response = await self._fetch()
+        code, body = await self._fetch()
 
-        if response.code != 201:
-            LOGGER.error("Error %i when uploading content: %s", response.code, response.body)
+        if code != 201:
+            LOGGER.error("Error %i when uploading content: %s", code, str(body))
 
-        return response.code == 201
+        return code == 201
 
 
 class GithubPR(GithubApiFunction):
@@ -229,15 +235,14 @@ class GithubPR(GithubApiFunction):
         )
 
     async def create(self) -> Optional[int]:
-        response = await self._fetch()
+        code, body = await self._fetch()
 
-        if response.code != 201:
-            LOGGER.error("Error %i when creating PR: %s", response.code, response.body)
+        if code != 201:
+            LOGGER.error("Error %i when creating PR: %s", code, str(body))
             return None
 
-        return self._issue(response.body)
+        return self._issue(body)
 
     @staticmethod
     def _issue(body):
-        result = json.loads(body.decode("utf-8"))
-        return result.get("number", None)
+        return body.get("number", None)
