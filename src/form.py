@@ -1,5 +1,5 @@
 """ Module for the form receiver """
-import json
+
 from abc import ABCMeta
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -9,7 +9,10 @@ import tornado.web
 
 import os
 
+from captcha import Recaptcha
+
 import logging
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -84,14 +87,19 @@ class Comment:
 
 class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
     # noinspection PyAttributeOutsideInit,PyMethodOverriding
-    def initialize(self, cfg: FormConfiguration, comment_cb: Callable[[Comment], Awaitable[int]]) -> None:
+    def initialize(self,
+                   cfg: FormConfiguration,
+                   comment_cb: Callable[[Comment], Awaitable[int]],
+                   recaptcha: Optional[Recaptcha] = None) -> None:
         """
 
         :param cfg: Handler configuration
         :param comment_cb: Callback to handle comments
+        :param recaptcha: (Optional) Recaptcha verification handler
         """
         self._cfg = cfg
         self._cb = comment_cb
+        self._recaptcha = recaptcha
 
     def set_default_headers(self) -> None:
         # CORS headers have to be set here so that they are also available for error responses.
@@ -117,6 +125,14 @@ class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
         try:
             comment = self._cmt_from_body()
             LOGGER.info("Processing comment %s", comment)
+
+            if self._recaptcha:
+                if not await self._validate_recaptcha():
+                    LOGGER.warning("Could not validate reCAPTCHA response!")
+                    raise tornado.web.HTTPError(status_code=400,
+                                                reason="Invalid reCAPTCHA response!")
+                else:
+                    LOGGER.info("reCAPTCHA validation successful")
 
             pr = await self._call_cb(comment)
 
@@ -152,6 +168,14 @@ class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
             raise tornado.web.HTTPError(status_code=500,
                                         reason="Comment processing failed")
         return pr
+
+    async def _validate_recaptcha(self) -> bool:
+        if not self._recaptcha:
+            LOGGER.warning("reCAPTCHA check is not configured")
+            return False
+
+        response = self.get_body_argument(Recaptcha.RESPONSE_KEY, None)
+        return await self._recaptcha.verify(response)
 
     def _cmt_from_body(self) -> Comment:
         return Comment(
