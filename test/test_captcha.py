@@ -1,13 +1,32 @@
 """ Test the recaptcha module """
-
+import json
 from unittest import mock
 import pytest
 
 import os
+import io
+
+from tornado.concurrent import Future
+from tornado.httpclient import AsyncHTTPClient
+from tornado.httpclient import HTTPRequest
+from tornado.httpclient import HTTPResponse
 
 # noinspection PyUnresolvedReferences
 # noinspection PyPackageRequirements
 import captcha
+
+
+def setup_fetch(fetch_mock, status_code, body=None):
+    def side_effect(request, **_kwargs):
+        if request is not HTTPRequest:
+            request = HTTPRequest(request)
+        buffer = io.BytesIO(body.encode())
+        response = HTTPResponse(request, status_code, None, buffer)
+        future = Future()
+        future.set_result(response)
+        return future
+
+    fetch_mock.side_effect = side_effect
 
 
 class TestRecaptchaConfiguration:
@@ -84,4 +103,30 @@ class TestRecaptcha:
 
         assert not recaptcha._process_result(body)
 
-# TODO mock test for captcha verification call
+    @pytest.mark.asyncio
+    async def test_fetch(self):
+        cfg = captcha.RecaptchaConfiguration(secret="1")
+        recaptcha = captcha.Recaptcha(cfg)
+
+        with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+            setup_fetch(fetch_mock, 200, json.dumps({
+                "success": True
+            }))
+            success = await recaptcha.verify("2")
+            assert success
+
+            setup_fetch(fetch_mock, 200, json.dumps({
+                "success": "True"
+            }))
+            success = await recaptcha.verify("2")
+            assert success
+
+            setup_fetch(fetch_mock, 200, json.dumps({
+                "success": False
+            }))
+            success = await recaptcha.verify("2")
+            assert not success
+
+            setup_fetch(fetch_mock, 200, "not json")
+            success = await recaptcha.verify("2")
+            assert not success
