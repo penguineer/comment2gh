@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Example Form</title>
+
+    <style>
+form#commentform input.missing,
+form#commentform textarea.missing {
+  border: 2px solid red !important;
+}
+</style>
+</head>
+
+<body>
+
+<form action="" method="post" id="commentform">
+    <fieldset id="commentfields">
+        <div>
+            <input name="cmt_slug" type="hidden" value="{{ slug }}">
+            <input name="comment-site" type="hidden" value="{{ site.url }}">
+        </div>
+
+        <div>
+            <label for="comment-name">Name/Alias <span>(needed, will be displayed)</span></label>
+            <input type="text" name="cmt_name" id="comment-name" class="required" placeholder="Name"/>
+        </div>
+
+        <div>
+            <label for="comment-email">E-Mail <span>(needed, will not be displayed)</span></label>
+            <input type="text" name="cmt_email" id="comment-email" class="required" placeholder="me@somewhere.net"/>
+        </div>
+
+        <div>
+            <label for="comment-message">Comment <span>(needed, will be moderated)</span></label>
+            <textarea name="cmt_message" id="comment-message" class="required"
+                      placeholder="Write a comment."></textarea>
+        </div>
+
+        <div>
+            <label for="comment-url">Website <span>(optional, will be displayed)</span></label>
+            <input type="text" name="cmt_url" id="comment-url" placeholder="https://www.somewhere.net"/>
+        </div>
+
+        <div>
+            <p id="commentstatus"></p>
+        </div>
+
+        <div class="g-recaptcha" data-sitekey="{{ site.comments.recaptcha-key }}"
+                                 data-callback="captchaDataCallback"
+                                 data-expired-callback="captchaExpiredCallback"
+                                 data-error-callback="captchaErrroCallback"></div>
+
+        <div>
+            <button type="submit" id="commentbutton">Post comment</button>
+        </div>
+    </fieldset>
+</form>
+
+<script>
+    async function sendForm(url, formData) {
+      const response = await fetch("{{ site.comments.receiver }}", {
+        method: 'POST',
+        mode: 'cors',
+        redirect: 'follow',
+        body: formData
+      })
+
+      if (response.status != 201) {
+        throw Error(response.statusText);
+      }
+
+      return response
+    }
+
+    window.addEventListener("DOMContentLoaded", function() {
+      var form = document.getElementById('commentform')
+      form.addEventListener('submit', function(e) {
+        e.preventDefault()
+
+        var status = document.getElementById('commentstatus')
+        status.innerText = ''
+
+        missing = false
+
+        inputs = document.forms["commentform"].getElementsByClassName("required");
+        for (item of inputs) {
+          if (item.value.length < 1) {
+            item.classList.add("missing")
+            missing = true
+          } else {
+            item.classList.remove("missing")
+          }
+        }
+
+        if (missing) {
+          status.innerText = 'The colored fields feel so lonely without a value.'
+          return
+        }
+
+        confirm_text = "Really post comment"
+        var button = document.getElementById('commentbutton')
+        if (button.innerText.toLowerCase() == "Post comment".toLowerCase()) {
+          button.innerText = confirm_text
+          return
+        }
+
+        button.innerText = 'Posting …'
+        button.disabled = true
+
+        sendForm("{{ site.comments.receiver }}", new FormData(form))
+          .then(response => response.json())
+          .then(response => {
+            console.log(response)
+            pr = response["pr"]
+            status.innerText = "The comment #" + pr + "will be moderated. This may take A Moment™."
+            button.style.visibility = "hidden"
+
+          })
+          .catch(error => {
+            status.innerText = "Unfortunately an error occurred: " + error
+
+            button.innerText = 'Try again …'
+            button.disabled = false
+
+            grecaptcha.reset()
+
+            console.log(error)
+          })
+
+      })
+    }, false);
+</script>
+<script type="text/javascript">
+var onloadCallback = function() {
+};
+var captchaDataCallback = function() {
+  var button = document.getElementById('commentbutton')
+  button.disabled = false
+}
+var captchaExpiredCallback = function() {
+  var button = document.getElementById('commentbutton')
+  button.disabled = true
+}
+var captchaErrorCallback = function(error) {
+  var status = document.getElementById('commentstatus')
+  status.innerText = "A problem with reCAPTCHA occurred: " + error
+
+  var button = document.getElementById('commentbutton')
+  button.disabled = true
+}
+</script>
+<script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=onload" async defer></script>
+
+</body>
