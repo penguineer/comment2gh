@@ -66,58 +66,99 @@ class GithubConfiguration(object):
         }
 
 
-class GithubReferenceAccess(object):
-    def __init__(self, cfg: GithubConfiguration):
+class GithubApiFunction(object):
+
+    @staticmethod
+    def assert_cfg(cfg: GithubConfiguration):
         if cfg is None:
             raise ValueError("Configuration must be provided!")
+
+    def __init__(
+            self,
+            cfg: GithubConfiguration,
+            url: str,
+            method="GET",
+            body=None
+    ):
+        GithubApiFunction.assert_cfg(cfg)
         self._cfg = cfg
 
-    async def retrieve_default_head(self) -> Optional[str]:
-        http_client = AsyncHTTPClient()
+        if not url:
+            raise ValueError("URL must be provided!")
+        self._url = url
 
-        req = HTTPRequest(
-            url=f"https://api.github.com/repos/%s/%s/git/matching-refs/%s" % (
-                self._cfg.user,
-                self._cfg.repository,
-                f"heads/%s" % self._cfg.branch
-            ),
-            headers=self._cfg.create_auth_header() | {
-                "Accept": "application/vnd.github.v3+json"
-            }
+        self._method = method
+        self._body = body
+
+    def _headers(self):
+        return self._cfg.create_auth_header() | {
+            "Accept": "application/vnd.github.v3+json"
+        }
+
+    def _request(self):
+        return HTTPRequest(
+            method=self._method,
+            url=self._url,
+            headers=self._headers(),
+            body=self._body
         )
 
-        response = await http_client.fetch(req, raise_error=False)
+    async def _fetch(self):
+        return await AsyncHTTPClient().fetch(
+            self._request(),
+            raise_error=False
+        )
 
-        sha = None
 
-        if response.code == 200:
-            result = json.loads(response.body.decode("utf-8"))
-            if len(result):
-                sha = result[0]["object"]["sha"]
-        else:
+class GithubDefaultRef(GithubApiFunction):
+    def __init__(self,
+                 cfg: GithubConfiguration):
+        GithubApiFunction.assert_cfg(cfg)
+        super().__init__(
+            cfg,
+            url=f"https://api.github.com/repos/%s/%s/git/matching-refs/%s" % (
+                cfg.user,
+                cfg.repository,
+                f"heads/%s" % cfg.branch  # Could be optimized, but that would hide the API endpoint URL
+            )
+        )
+
+    async def default_head(self) -> Optional[str]:
+        response = await self._fetch()
+
+        if response.code != 200:
             LOGGER.error("Error %i when fetching ref id: %s", response.code, response.body)
+            return None
 
-        return sha
+        return GithubDefaultRef._sha(response.body)
 
-    async def create_branch(self, sha: str, branch: str) -> bool:
-        http_client = AsyncHTTPClient()
+    @staticmethod
+    def _sha(body):
+        result = json.loads(body.decode("utf-8"))
+        return result[0]["object"]["sha"] if len(result) else None
 
-        req = HTTPRequest(
-            method="POST",
+
+class GithubCreateBranch(GithubApiFunction):
+    def __init__(self,
+                 cfg: GithubConfiguration,
+                 sha: str,
+                 branch: str):
+        GithubApiFunction.assert_cfg(cfg)
+        super().__init__(
+            cfg,
             url=f"https://api.github.com/repos/%s/%s/git/refs" % (
-                self._cfg.user,
-                self._cfg.repository
+                cfg.user,
+                cfg.repository
             ),
-            headers=self._cfg.create_auth_header() | {
-                "Accept": "application/vnd.github.v3+json"
-            },
+            method="POST",
             body=json.dumps({
                 "ref": f"refs/heads/%s" % branch,
                 "sha": sha
             })
         )
 
-        response = await http_client.fetch(req, raise_error=False)
+    async def create_branch(self) -> bool:
+        response = await self._fetch()
 
         if response.code != 201:
             LOGGER.error("Error %i when creating ref id: %s", response.code, response.body)
@@ -125,32 +166,24 @@ class GithubReferenceAccess(object):
         return response.code == 201
 
 
-class GithubUpload(object):
-    def __init__(self, cfg: GithubConfiguration):
-        if cfg is None:
-            raise ValueError("Configuration must be provided!")
-        self._cfg = cfg
-
-    async def upload(self,
-                     branch: str,
-                     path: str,
-                     message: str,
-                     committer_name: str, committer_email: str,
-                     content: str):
+class GithubUpload(GithubApiFunction):
+    def __init__(self,
+                 cfg: GithubConfiguration,
+                 branch: str,
+                 path: str,
+                 message: str,
+                 committer_name: str, committer_email: str,
+                 content: str):
+        GithubApiFunction.assert_cfg(cfg)
         b64 = base64.b64encode(content.encode("utf-8"))
-
-        http_client = AsyncHTTPClient()
-
-        req = HTTPRequest(
-            method="PUT",
+        super().__init__(
+            cfg,
             url=f"https://api.github.com/repos/%s/%s/contents/%s" % (
-                self._cfg.user,
-                self._cfg.repository,
+                cfg.user,
+                cfg.repository,
                 path
             ),
-            headers=self._cfg.create_auth_header() | {
-                "Accept": "application/vnd.github.v3+json"
-            },
+            method="PUT",
             body=json.dumps({
                 "branch": branch,
                 "message": message,
@@ -162,7 +195,8 @@ class GithubUpload(object):
             })
         )
 
-        response = await http_client.fetch(req, raise_error=False)
+    async def upload(self):
+        response = await self._fetch()
 
         if response.code != 201:
             LOGGER.error("Error %i when uploading content: %s", response.code, response.body)
@@ -170,28 +204,21 @@ class GithubUpload(object):
         return response.code == 201
 
 
-class GithubPR(object):
-    def __init__(self, cfg: GithubConfiguration):
-        if cfg is None:
-            raise ValueError("Configuration must be provided!")
-        self._cfg = cfg
-
-    async def create_pr(self,
-                        title: str,
-                        head: str, base: str,
-                        body: str,
-                        maintainer_can_modify: Optional[bool] = True) -> Optional[int]:
-        http_client = AsyncHTTPClient()
-
-        req = HTTPRequest(
-            method="POST",
+class GithubPR(GithubApiFunction):
+    def __init__(self,
+                 cfg: GithubConfiguration,
+                 title: str,
+                 head: str, base: str,
+                 body: str,
+                 maintainer_can_modify: Optional[bool] = True):
+        GithubApiFunction.assert_cfg(cfg)
+        super().__init__(
+            cfg,
             url=f"https://api.github.com/repos/%s/%s/pulls" % (
-                self._cfg.user,
-                self._cfg.repository
+                cfg.user,
+                cfg.repository
             ),
-            headers=self._cfg.create_auth_header() | {
-                "Accept": "application/vnd.github.v3+json"
-            },
+            method="POST",
             body=json.dumps({
                 "title": title,
                 "head": head,
@@ -201,15 +228,16 @@ class GithubPR(object):
             })
         )
 
-        response = await http_client.fetch(req, raise_error=False)
+    async def create(self) -> Optional[int]:
+        response = await self._fetch()
 
         if response.code != 201:
             LOGGER.error("Error %i when creating PR: %s", response.code, response.body)
+            return None
 
-        issue = None
+        return self._issue(response.body)
 
-        if response.code == 201:
-            result = json.loads(response.body.decode("utf-8"))
-            issue = result.get("number", None)
-
-        return issue
+    @staticmethod
+    def _issue(body):
+        result = json.loads(body.decode("utf-8"))
+        return result.get("number", None)
