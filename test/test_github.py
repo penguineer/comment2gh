@@ -1,8 +1,15 @@
 """ Test the processor module """
+import json
 from unittest import mock
 import pytest
 
 import os
+import io
+
+from tornado.concurrent import Future
+from tornado.httpclient import AsyncHTTPClient
+from tornado.httpclient import HTTPRequest
+from tornado.httpclient import HTTPResponse
 
 # noinspection PyUnresolvedReferences
 # noinspection PyPackageRequirements
@@ -14,6 +21,19 @@ MINIMAL_ENVIRONMENT = {
         "GITHUB_REPOSITORY": "3",
         "GITHUB_EMAIL": "4"
     }
+
+
+def setup_fetch(fetch_mock, status_code, body=None):
+    def side_effect(request, **_kwargs):
+        if request is not HTTPRequest:
+            request = HTTPRequest(request)
+        buffer = io.BytesIO(body.encode())
+        response = HTTPResponse(request, status_code, None, buffer)
+        future = Future()
+        future.set_result(response)
+        return future
+
+    fetch_mock.side_effect = side_effect
 
 
 class TestGithubConfiguration:
@@ -140,7 +160,21 @@ class TestGithubApiFunction:
             assert len(r.headers) == 2
             assert r.body == b"6"
 
-# TODO mock tests here
+    @pytest.mark.asyncio
+    async def test_fetch(self):
+        with mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True):
+            cfg = github.GithubConfiguration.from_environment()
+            f = github.GithubApiFunction(cfg, url="5")
+
+            with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+                setup_fetch(fetch_mock, 200, "{}")
+                code, body = await f._fetch()
+                assert code == 200
+                assert body == {}
+
+                with pytest.raises(json.decoder.JSONDecodeError):
+                    setup_fetch(fetch_mock, 200, "OK")
+                    await f._fetch()
 
 
 class TestGithubDefaultRef:
@@ -172,7 +206,70 @@ class TestGithubDefaultRef:
         assert r.method == "GET"
         assert r.body is None
 
-# TODO mock tests here
+    @pytest.mark.asyncio
+    async def test_fetch_found(self):
+        with mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True):
+            cfg = github.GithubConfiguration.from_environment()
+            dr = github.GithubDefaultRef(cfg)
+
+            with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+                setup_fetch(fetch_mock, 200, json.dumps([{
+                    "object": {
+                        "sha": "123"
+                    }
+                }]))
+                head = await dr.default_head()
+
+                assert head == "123"
+
+    @pytest.mark.asyncio
+    async def test_fetch_not_found(self):
+        with mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True):
+            cfg = github.GithubConfiguration.from_environment()
+            dr = github.GithubDefaultRef(cfg)
+
+            with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+                setup_fetch(fetch_mock, 404, "{}")
+                head = await dr.default_head()
+
+                assert head is None
+
+    @pytest.mark.asyncio
+    async def test_fetch_weird_structures(self):
+        with mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True):
+            cfg = github.GithubConfiguration.from_environment()
+            dr = github.GithubDefaultRef(cfg)
+
+            with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+                setup_fetch(fetch_mock, 200, json.dumps({}))
+                head = await dr.default_head()
+                assert head is None
+
+                setup_fetch(fetch_mock, 200, json.dumps([]))
+                head = await dr.default_head()
+                assert head is None
+
+                setup_fetch(fetch_mock, 200, json.dumps({
+                    "object": {}
+                }))
+                head = await dr.default_head()
+                assert head is None
+
+                setup_fetch(fetch_mock, 200, json.dumps([{
+                    "object": {
+                        "sha2": "123"
+                    }
+                }]))
+                head = await dr.default_head()
+                assert head is None
+
+                setup_fetch(fetch_mock, 200, json.dumps([{
+                    "object": {
+                        "sha": None
+                    }
+                }]))
+                head = await dr.default_head()
+                assert head is None
 
 
 class TestGithubCreateBranch:
@@ -197,7 +294,20 @@ class TestGithubCreateBranch:
         assert r.method == "POST"
         assert r.body == b'{"ref": "refs/heads/8", "sha": "7"}'
 
-# TODO mock tests here
+    @pytest.mark.asyncio
+    async def test_fetch(self):
+        with mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True):
+            cfg = github.GithubConfiguration.from_environment()
+            cb = github.GithubCreateBranch(**TestGithubCreateBranch.ARGS | {"cfg": cfg})
+
+            with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+                setup_fetch(fetch_mock, 201, "{}")
+                success = await cb.create_branch()
+                assert success
+
+                setup_fetch(fetch_mock, 400, "{}")
+                success = await cb.create_branch()
+                assert not success
 
 
 class TestGithubUpload:
@@ -227,7 +337,20 @@ class TestGithubUpload:
         assert r.body == \
                b'{"branch": "7", "message": "9", "committer": {"name": "10", "email": "11"}, "content": "MTI="}'
 
-# TODO mock tests here
+    @pytest.mark.asyncio
+    async def test_fetch(self):
+        with mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True):
+            cfg = github.GithubConfiguration.from_environment()
+            u = github.GithubUpload(**TestGithubUpload.ARGS | {"cfg": cfg})
+
+            with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+                setup_fetch(fetch_mock, 201, "{}")
+                success = await u.upload()
+                assert success
+
+                setup_fetch(fetch_mock, 400, "{}")
+                success = await u.upload()
+                assert not success
 
 
 class TestGithubPR:
@@ -256,4 +379,23 @@ class TestGithubPR:
         assert r.body == \
                b'{"title": "7", "head": "8", "base": "9", "body": "10", "maintainer_can_modify": true}'
 
-# TODO mock tests here
+    @pytest.mark.asyncio
+    async def test_fetch(self):
+        with mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True):
+            cfg = github.GithubConfiguration.from_environment()
+            pr = github.GithubPR(**TestGithubPR.ARGS | {"cfg": cfg})
+
+            with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+                setup_fetch(fetch_mock, 201, json.dumps({
+                    "number": 123
+                }))
+                issue = await pr.create()
+                assert issue == 123
+
+                setup_fetch(fetch_mock, 201, "{}")
+                issue = await pr.create()
+                assert issue is None
+
+                setup_fetch(fetch_mock, 400, "{}")
+                issue = await pr.create()
+                assert issue is None
