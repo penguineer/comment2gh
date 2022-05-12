@@ -50,6 +50,18 @@ class TestFormConfiguration:
         with pytest.raises(ValueError):
             form.FormConfiguration(form_message=None)
 
+    def test_multiline_reject(self):
+        with pytest.raises(ValueError):
+            form.FormConfiguration(form_slug="a\nb")
+        with pytest.raises(ValueError):
+            form.FormConfiguration(form_name="a\nb")
+        with pytest.raises(ValueError):
+            form.FormConfiguration(form_email="a\nb")
+        with pytest.raises(ValueError):
+            form.FormConfiguration(form_url="a\nb")
+
+        form.FormConfiguration(form_message="a\nb")
+
     @mock.patch.dict(os.environ, {}, clear=True)
     def test_empty_env(self):
         cfg = form.FormConfiguration.from_environment()
