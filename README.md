@@ -56,9 +56,16 @@ Configuration is done using environment variables:
 * `FORM_EMAIL`: Field name for the commenter's e-mail address (default: `cmt_email`)
 * `FORM_URL`: Field name for the commenter's chosen URL (default: `cmt_url`)
 * `FORM_MESSAGE`: Field name for the comment message (default: `cmt_message`)
+* `FORM_EMAIL_CHECK`: Configure e-mail checking to one of `required`, `optional` or `none` (default: `optional`)
 
 Please refer to the  [GitHub documentation on Creating a Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
 on how to the `GITHUB_TOKEN`.
+
+The `FORM_EMAIL_CHECK` decides how the e-mail field is handled:
+* With `required` and request that does not provide an e-mail address will be rejected.
+* Use `optional` (default) to allow, but not require an e-mail address.
+* Set to `none` to ignore and filter e-mail addresses. This may help with GDPR compliance on sites that use a public repository.
+
 
 ## API
 

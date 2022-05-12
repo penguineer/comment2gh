@@ -32,12 +32,15 @@ class FormConfiguration(object):
     DEFAULT_URL_FIELD = "cmt_url"
     DEFAULT_MESSAGE_FIELD = "cmt_message"
 
+    MAIL_OPTIONS = ["optional", "none", "required"]  # First value is used as default
+
     origin: str = DEFAULT_CORS_ORIGIN
     form_slug: str = DEFAULT_SLUG_FIELD
     form_name: str = DEFAULT_NAME_FIELD
     form_email: str = DEFAULT_EMAIL_FIELD
     form_url: str = DEFAULT_URL_FIELD
     form_message: str = DEFAULT_MESSAGE_FIELD
+    mail_option: str = MAIL_OPTIONS[0]
 
     @staticmethod
     def from_environment():
@@ -47,7 +50,8 @@ class FormConfiguration(object):
             form_name=os.getenv('FORM_NAME', FormConfiguration.DEFAULT_NAME_FIELD),
             form_email=os.getenv('FORM_EMAIL', FormConfiguration.DEFAULT_EMAIL_FIELD),
             form_url=os.getenv("FORM_URL", FormConfiguration.DEFAULT_URL_FIELD),
-            form_message=os.getenv('FORM_MESSAGE', FormConfiguration.DEFAULT_MESSAGE_FIELD)
+            form_message=os.getenv('FORM_MESSAGE', FormConfiguration.DEFAULT_MESSAGE_FIELD),
+            mail_option=os.getenv('FORM_EMAIL_CHECK', FormConfiguration.MAIL_OPTIONS[0])
         )
 
     def __post_init__(self):
@@ -59,10 +63,14 @@ class FormConfiguration(object):
             'form_name',
             'form_email',
             'form_url',
-            'form_message'
+            'form_message',
+            'mail_option'
         ]
         for attr in req:
             _assert_value(self.__getattribute__(attr), attr)
+
+        if self.mail_option not in FormConfiguration.MAIL_OPTIONS:
+            raise ValueError("FORM_EMAIL_CHECK (mail_option) must be one of %s", str(FormConfiguration.MAIL_OPTIONS))
 
 
 @dataclass(frozen=True)
@@ -71,18 +79,20 @@ class Comment:
     date: str = field(init=False, default="")
     slug: str
     name: str
-    email: str = field(repr=False)
     message: str
+    email: str = field(repr=False, default=None)
     url: Optional[str] = None
 
     def __post_init__(self):
         _assert_value(self.slug, "Post ID")
         _assert_value(self.name, "name")
-        _assert_value(self.email, "e-mail")
         _assert_value(self.message, "message")
 
         super().__setattr__('date', str(datetime.now().isoformat()))
         super().__setattr__('cid', self.__hash__() % 1000000000)
+
+    def delete_email(self):
+        super().__setattr__('email', None)
 
 
 class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
@@ -125,6 +135,8 @@ class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
         try:
             comment = self._cmt_from_body()
             LOGGER.info("Processing comment %s", comment)
+
+            self._handle_comment_mail(comment)
 
             if self._recaptcha:
                 if not await self._validate_recaptcha():
@@ -185,6 +197,14 @@ class CommentHandler(tornado.web.RequestHandler, metaclass=ABCMeta):
             message=self._arg_or_default(self._cfg.form_message),
             url=self._arg_or_default(self._cfg.form_url)
         )
+
+    def _handle_comment_mail(self, comment):
+        if self._cfg.mail_option == "required" and \
+                not comment.email:
+            raise ValueError("E-Mail address is required!")
+
+        if self._cfg.mail_option == "none":
+            comment.delete_email()
 
     def _arg_or_default(self, key, default=None):
         return default \
