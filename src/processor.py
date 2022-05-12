@@ -1,7 +1,7 @@
 """ Module for comment processing """
 
 import form
-from github import GithubConfiguration, GithubUpload, GithubPR, GithubDefaultRef, GithubCreateBranch
+from github import GithubConfiguration, GithubUpload, GithubPR, GithubDefaultRef, GithubCreateBranch, GithubLabel
 
 from typing import Optional
 
@@ -85,7 +85,14 @@ class CommentProcessor(object):
         if not await self._upload_file(formatter):
             return None
 
-        return await self._create_pr(formatter)
+        issue = await self._create_pr(formatter)
+
+        # Failed label does not kill the whole process
+        if issue and GithubLabel.applicable(self._cfg):
+            if not await GithubLabel(self._cfg, issue).add():
+                LOGGER.error("Could not add label!")
+
+        return issue
 
     async def _create_branch(self, formatter) -> bool:
         main_head = await GithubDefaultRef(self._cfg).default_head()
