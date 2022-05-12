@@ -58,6 +58,13 @@ class FormConfiguration(object):
         if self.origin is None:
             object.__setattr__(self, 'origin', '*')
 
+        self._assert_field_values()
+        self._assert_single_line_fields()
+
+        if self.mail_option not in FormConfiguration.MAIL_OPTIONS:
+            raise ValueError("FORM_EMAIL_CHECK (mail_option) must be one of %s", str(FormConfiguration.MAIL_OPTIONS))
+
+    def _assert_field_values(self):
         req = [
             'form_slug',
             'form_name',
@@ -69,8 +76,17 @@ class FormConfiguration(object):
         for attr in req:
             _assert_value(self.__getattribute__(attr), attr)
 
-        if self.mail_option not in FormConfiguration.MAIL_OPTIONS:
-            raise ValueError("FORM_EMAIL_CHECK (mail_option) must be one of %s", str(FormConfiguration.MAIL_OPTIONS))
+    def _assert_single_line_fields(self):
+        sl = [
+            'form_slug',
+            'form_name',
+            'form_email',
+            'form_url'
+        ]
+        for attr in sl:
+            val = self.__getattribute__(attr)
+            if val is not None and '\n' in val:
+                raise ValueError("Field %s must not have newlines!")
 
 
 @dataclass(frozen=True)

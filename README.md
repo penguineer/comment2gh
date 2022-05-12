@@ -88,6 +88,8 @@ If successful, the call returns a JSON document like this:
 }
 ```
 
+Please note that other than the `FORM_MESSAGE` all fields must be single-line and newline characters will lead to an error response.
+
 ### Google reCAPTCHA
 
 When the `RECAPTCHA_SECRET` is configured, a verification with [Google reCAPTCHA v2 (Checkbox)](https://developers.google.com/recaptcha/docs/display) will be performed.
