@@ -34,6 +34,7 @@ class GithubConfiguration(object):
     email: str
     author: str = DEFAULT_AUTHOR
     branch: str = DEFAULT_BRANCH
+    label: str = None
 
     @staticmethod
     def from_environment():
@@ -44,7 +45,7 @@ class GithubConfiguration(object):
             email=os.getenv("GITHUB_EMAIL", None),
             author=os.getenv("GITHUB_AUTHOR", GithubConfiguration.DEFAULT_AUTHOR),
             branch=os.getenv("GITHUB_DEFAULT_BRANCH", GithubConfiguration.DEFAULT_BRANCH),
-
+            label=os.getenv("GITHUB_LABEL", None)
         )
 
     def __post_init__(self):
@@ -246,3 +247,40 @@ class GithubPR(GithubApiFunction):
     @staticmethod
     def _issue(body):
         return body.get("number", None)
+
+
+class GithubLabel(GithubApiFunction):
+    @staticmethod
+    def applicable(cfg: GithubConfiguration) -> bool:
+        return cfg is not None and cfg.label
+
+    def __init__(self,
+                 cfg: GithubConfiguration,
+                 issue: int):
+        GithubApiFunction.assert_cfg(cfg)
+        if not GithubLabel.applicable(cfg):
+            raise ValueError("Cannot create label handler without configured label!")
+        super().__init__(
+            cfg,
+            url=f"https://api.github.com/repos/%s/%s/issues/%s/labels" % (
+                cfg.user,
+                cfg.repository,
+                str(issue)
+            ),
+            method="POST",
+            body=json.dumps({
+                "labels": [cfg.label]
+            })
+        )
+
+    async def add(self) -> bool:
+        code, body = await self._fetch()
+
+        if code == 410:
+            LOGGER.error("Add label: Issue is gone! %s", str(body))
+            return False
+
+        if code == 422:
+            LOGGER.error("Add label: Validation failed! %s", str(body))
+
+        return code == 200
