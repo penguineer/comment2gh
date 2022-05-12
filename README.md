@@ -48,6 +48,7 @@ Configuration is done using environment variables:
 * `GITHUB_AUTHOR`: Commit author name (default: `comment2gh Bot`)
 * `GITHUB_EMAIL`: Commit author e-mail
 * `GITHUB_DEFAULT_BRANCH`: Where to start the PR branches (default: `main`)
+* `GITHUB_LABEL`: Set to add a Label to the created PR. This label must exist! (default: None)
 * `RECAPTCHA_SECRET`: Secret for Google reCaptcha service (disabled when not provided)
 * `SERVICE_PORT`: Port for the HTTP Service (default: 8080)
 * `CORS_ORIGIN`: Allowed origins for the request (default: `*`)
