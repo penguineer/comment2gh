@@ -52,7 +52,8 @@ class TestGithubConfiguration:
 
     @mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT | {
         "GITHUB_AUTHOR": "5",
-        "GITHUB_DEFAULT_BRANCH": "6"
+        "GITHUB_DEFAULT_BRANCH": "6",
+        "GITHUB_LABEL": "7"
     }, clear=True)
     def test_full_config(self):
         cfg = github.GithubConfiguration.from_environment()
@@ -63,6 +64,7 @@ class TestGithubConfiguration:
         assert cfg.email == "4"
         assert cfg.author == "5"
         assert cfg.branch == "6"
+        assert cfg.label == "7"
 
     def test_missing_values(self):
         values = {
@@ -399,3 +401,64 @@ class TestGithubPR:
                 setup_fetch(fetch_mock, 400, "{}")
                 issue = await pr.create()
                 assert issue is None
+
+
+class TestGithubLabel:
+    ARGS = {
+        "cfg": None,
+        "issue": 4
+    }
+
+    @mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True)
+    def test_not_applicable(self):
+        assert not github.GithubLabel.applicable(None)
+        assert not github.GithubLabel.applicable(
+            github.GithubConfiguration.from_environment())
+
+    @mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT | {
+        "GITHUB_LABEL": "5"
+    }, clear=True)
+    def test_applicable(self):
+        assert github.GithubConfiguration.from_environment()
+
+    def test_null_cfg(self):
+        with pytest.raises(ValueError):
+            github.GithubLabel(**TestGithubLabel.ARGS)
+
+    @mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT, clear=True)
+    def test_null_label(self):
+        cfg = github.GithubConfiguration.from_environment()
+        with pytest.raises(ValueError):
+            github.GithubLabel(**TestGithubLabel.ARGS | {"cfg": cfg})
+
+    @mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT | {
+        "GITHUB_LABEL": "5"
+    }, clear=True)
+    def test_request(self):
+        cfg = github.GithubConfiguration.from_environment()
+        lab = github.GithubLabel(**TestGithubLabel.ARGS | {"cfg": cfg})
+
+        r = lab._request()
+
+        assert r.url == "https://api.github.com/repos/1/3/issues/4/labels"
+        assert r.method == "POST"
+        assert r.body == \
+               b'{"labels": ["5"]}'
+
+    @pytest.mark.asyncio
+    async def test_successful_fetch(self):
+        with mock.patch.dict(os.environ, MINIMAL_ENVIRONMENT | {
+            "GITHUB_LABEL": "5"
+        }, clear=True):
+            cfg = github.GithubConfiguration.from_environment()
+            lab = github.GithubLabel(**TestGithubLabel.ARGS | {"cfg": cfg})
+
+            with mock.patch.object(AsyncHTTPClient, 'fetch') as fetch_mock:
+                setup_fetch(fetch_mock, 200, "{}")
+                assert await lab.add()
+
+                setup_fetch(fetch_mock, 410, "{}")
+                assert not await lab.add()
+
+                setup_fetch(fetch_mock, 422, "{}")
+                assert not await lab.add()
