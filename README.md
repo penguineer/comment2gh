@@ -10,6 +10,7 @@ A small service running in a docker container that
 
 This service is the bridge between visitor participation and static hosting.
 
+![Architecture](doc/arch.png)
 
 ## Background
 
