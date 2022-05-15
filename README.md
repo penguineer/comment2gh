@@ -49,8 +49,8 @@ Configuration is done using environment variables:
 * `GITHUB_AUTHOR`: Commit author name (default: `comment2gh Bot`)
 * `GITHUB_EMAIL`: Commit author e-mail
 * `GITHUB_DEFAULT_BRANCH`: Where to start the PR branches (default: `main`)
-* `GITHUB_LABEL`: Set to add a Label to the created PR. This label must exist! (default: None)
-* `RECAPTCHA_SECRET`: Secret for Google reCaptcha service (disabled when not provided)
+* `GITHUB_LABEL`: If set this will add a Label to the created PR. This label must exist! (default: None)
+* `RECAPTCHA_SECRET`: Secret for [Google reCAPTCHA v2](https://developers.google.com/recaptcha/docs/display) service (disabled when not provided)
 * `SERVICE_PORT`: Port for the HTTP Service (default: 8080)
 * `CORS_ORIGIN`: Allowed origins for the request (default: `*`)
 * `FORM_SLUG`: Field name for the blog entry's slug  (default: `cmt_slug`)
@@ -64,9 +64,9 @@ Please refer to the  [GitHub documentation on Creating a Personal Access Token](
 on how to the `GITHUB_TOKEN`.
 
 The `FORM_EMAIL_CHECK` decides how the e-mail field is handled:
-* With `required` and request that does not provide an e-mail address will be rejected.
+* With `required` any request that does not provide an e-mail address will be rejected.
 * Use `optional` (default) to allow, but not require an e-mail address.
-* Set to `none` to ignore and filter e-mail addresses. This may help with GDPR compliance on sites that use a public repository.
+* Set to `none` to ignore and filter e-mail addresses. This helps with GDPR compliance on sites that use a public repository.
 
 
 ## API
@@ -79,7 +79,7 @@ Service and form are tested with [Jekyll](https://jekyllrb.com/).
 If you change field names, please also adapt the service configuration accordingly.
 
 Of course, other ways of designing your form  (purely static, jQuery, …) are available.
-This service just expects to be fed with `application/x-www-form-urlencoded` data, as a browser would normally send.
+This service just expects to be fed with `application/x-www-form-urlencoded` data, as a browser would normally send, and looks for the configured form fields.
 
 If successful, the call returns a JSON document like this:
 ```json
@@ -120,7 +120,7 @@ To expose the health endpoint, route port 8080 to a port that is suitable for th
 
 ## Maintainers
 
-* [@penguineer](https://github.com/penguineer)
+* Stefan Haun ([@penguineer](https://github.com/penguineer))
 
 
 ## Contributing
@@ -136,4 +136,4 @@ If possible, please stick to the following guidelines:
 
 ## License
 
-MIT © 2022 Stefan Haun and contributors
+[MIT](LICENSE.txt) © 2022 Stefan Haun and contributors
