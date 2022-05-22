@@ -1,6 +1,6 @@
 # Comment to GitHub
 
-> Convert blog comments to GitHub PRs
+> Post blog comments as GitHub PRs
 
 A small service running in a docker container that
 * receives blog comments from a HTTP form
