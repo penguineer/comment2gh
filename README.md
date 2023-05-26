@@ -30,7 +30,7 @@ It should be not too hard to convert this into a Lambda Function or a similar on
 
 ### Run with Docker
 
-With the configuration stored in a file `.env`, the daemon can be started as follows: 
+With the configuration stored in a file `.env`, the daemon can be started as follows:
 
 ```bash
 docker run --rm \
@@ -74,7 +74,7 @@ The `FORM_EMAIL_CHECK` decides how the e-mail field is handled:
 ### HTML Form
 
 Please have a look at the [example form](example/example-form.html) on how to embed the service into a static
-website. The `{{ ... }}` sections mark where values need to be entered by your backend or templating engine. 
+website. The `{{ ... }}` sections mark where values need to be entered by your backend or templating engine.
 Service and form are tested with [Jekyll](https://jekyllrb.com/).
 If you change field names, please also adapt the service configuration accordingly.
 
@@ -100,14 +100,14 @@ The [reCAPTCHA example form](example/example-form-recaptcha.html) shows a client
 Please be aware that this will send data to Google!
 Only the minimal amount of data is sent, i.e. excluding the IP address, yet this needs to be mentioned in any GDPR declaration.
 
-To disable this feature, just leave the `RECAPTCHA_SECRET` unset or empty. 
+To disable this feature, just leave the `RECAPTCHA_SECRET` unset or empty.
 
 
 ### Health endpoint
 
 The daemon features a health endpoint to check if all components are up and running.
 While a certain amount of resilience is built into the handlers, an overall check routine using the Docker
-health checks has been established. 
+health checks has been established.
 The endpoint works similar to health endpoints expected for Microservices, e.g. in a Kubernetes runtime environment:
 * HTTP status 200 is returned when the service is considered healthy.
 * HTTP status 500 is returned when the service is considered unhealthy.
@@ -115,7 +115,7 @@ The endpoint works similar to health endpoints expected for Microservices, e.g. 
 
 The [Dockerfile](Dockerfile) sets the container up for a health check every 10s, otherwise sticks to the Docker defaults.
 
-To expose the health endpoint, route port 8080 to a port that is suitable for the deployment environment. 
+To expose the health endpoint, route port 8080 to a port that is suitable for the deployment environment.
 
 
 ## Maintainers
@@ -136,4 +136,4 @@ If possible, please stick to the following guidelines:
 
 ## License
 
-[MIT](LICENSE.txt) © 2022 Stefan Haun and contributors
+[MIT](LICENSE.txt) © 2022-2023 Stefan Haun and contributors
