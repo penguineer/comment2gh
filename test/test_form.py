@@ -189,7 +189,6 @@ class TestCommentHandler(CommentHandlerTestBase):
                         comment_cb=self.comment_cb)
 
     @tornado.testing.gen_test
-    @pytest.mark.gen_test(run_sync=False)
     def test_form_post_ok(self):
         form = {
             "cmt_slug": "1",
@@ -231,7 +230,6 @@ class TestCommentHandler(CommentHandlerTestBase):
         assert body["pr"] == self._cmt_return
 
     @tornado.testing.gen_test
-    @pytest.mark.gen_test(run_sync=False)
     def test_form_processing_failed(self):
         form = {
             "cmt_slug": "1",
@@ -255,7 +253,6 @@ class TestCommentHandler(CommentHandlerTestBase):
         assert response.headers['Access-Control-Allow-Methods'] == "POST, OPTIONS"
 
     @tornado.testing.gen_test
-    @pytest.mark.gen_test(run_sync=False)
     def test_missing_value(self):
         form = {
             "cmt_slug": "1",
@@ -327,7 +324,6 @@ class TestOptionalEmail(CommentHandlerTestBase):
                         comment_cb=self.comment_cb)
 
     @tornado.testing.gen_test
-    @pytest.mark.gen_test(run_sync=False)
     def test_email(self):
         form = {
             "cmt_slug": "1",
@@ -362,7 +358,6 @@ class TestRequiredEmail(CommentHandlerTestBase):
                         comment_cb=self.comment_cb)
 
     @tornado.testing.gen_test
-    @pytest.mark.gen_test(run_sync=False)
     def test_email(self):
         form = {
             "cmt_slug": "1",
@@ -398,7 +393,6 @@ class TestNoneEmail(CommentHandlerTestBase):
                         comment_cb=self.comment_cb)
 
     @tornado.testing.gen_test
-    @pytest.mark.gen_test(run_sync=False)
     def test_email(self):
         form = {
             "cmt_slug": "1",
