@@ -208,9 +208,11 @@ class TestCommentProcessor:
                 setup_call_1arg(upload_mock, True)
                 with mock.patch.object(processor.CommentProcessor, '_create_pr') as pr_mock:
                     setup_call_1arg(pr_mock, "1")
-                    proc = processor.CommentProcessor(cfg)
-                    issue = await proc.comment_to_github_pr(cmt)
-                    assert issue == "1"
+                    with mock.patch.object(github.GithubLabel, 'add') as label_mock:
+                        setup_call_0arg(label_mock, True)
+                        proc = processor.CommentProcessor(cfg)
+                        issue = await proc.comment_to_github_pr(cmt)
+                        assert issue == "1"
 
     @pytest.mark.asyncio
     async def test_with_label_fail(self):
@@ -224,7 +226,6 @@ class TestCommentProcessor:
                     setup_call_1arg(pr_mock, "1")
                     with mock.patch.object(github.GithubLabel, 'add') as label_mock:
                         setup_call_0arg(label_mock, False)
-
-                    proc = processor.CommentProcessor(cfg)
-                    issue = await proc.comment_to_github_pr(cmt)
-                    assert issue == "1"
+                        proc = processor.CommentProcessor(cfg)
+                        issue = await proc.comment_to_github_pr(cmt)
+                        assert issue == "1"
